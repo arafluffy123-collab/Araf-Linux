@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Linux-Mac Hybrid OS</title>
+    <style>
+        :root {
+            --bg-glass: rgba(30, 30, 30, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.15);
+            --accent-color: #357ec7;
+            --text-color: #f3f4f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6, #9333ea);
+            color: var(--text-color);
+        }
+
+        /* --- TOP TASKBAR --- */
+        #taskbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .taskbar-left, .taskbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #taskbar-apps {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+        /* --- BUTTONS (Rounded Rectangles) --- */
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-glass);
+            color: var(--text-color);
+            padding: 6px 14px;
+            border-radius: 8px; /* Rounded Rectangle */
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        #menu-btn {
+            background: var(--accent-color);
+            font-weight: bold;
+        }
+
+        #clock {
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* --- DESKTOP AREA --- */
+        #desktop {
+            position: absolute;
+            top: 40px;
+            bottom: 80px;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-content: flex-start;
+        }
+
+        .desktop-icon {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+            gap: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .icon-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .desktop-icon:hover .icon-img {
+            transform: scale(1.08);
+        }
+
+        .icon-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* --- MAC OS DOCK --- */
+        #dock-container {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        #dock {
+            background: rgba(20, 20, 20, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 10px 20px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .dock-item {
+            width: 55px;
+            height: 55px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: transform 0.2s, margin 0.2s;
+            position: relative;
+        }
+
+        .dock-item:hover {
+            transform: scale(1.25) translateY(-10px);
+            margin: 0 10px;
+        }
+
+        /* --- ALL APPS MENU PANEL --- */
+        #apps-menu {
+            position: absolute;
+            top: 45px;
+            left: 15px;
+            width: 320px;
+            background: rgba(25, 25, 25, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 2000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- WINDOWS SYSTEM --- */
+        .window {
+            position: absolute;
+            top: 15%;
+            left: 25%;
+            width: 600px;
+            height: 400px;
+            background: #1e1e1e;
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .window-header {
+            background: #2d2d2d;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            cursor: move;
+            border-bottom: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .window-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .dot-close { background: #ef4444; }
+        .dot-min { background: #f59e0b; }
+        .dot-max { background: #10b981; }
+
+        .window-content {
+            flex: 1;
+            width: 100%;
+            height: auto;
+            position: relative;
+        }
+
+        /* App Specific Styles */
+        .browser-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            color: #000;
+        }
+        .browser-bar {
+            background: #f3f4f6;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #d1d5db;
+        }
+        .browser-input {
+            flex: 1;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 12px;
+        }
+        .browser-page {
+            flex: 1;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .terminal-body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #4af626;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            font-size: 14px;
+            overflow-y: auto;
+        }
+
+        /* Specific App Colors */
+        .firefox-icon { background: linear-gradient(45deg, #ff6a00, #ee0979); }
+        .terminal-icon { background: #2e3440; border: 1px solid #4c566a; }
+    </style>
+</head>
+<body>
+
+    <!-- TOP TASKBAR -->
+    <div id="taskbar">
+        <div class="taskbar-left">
+            <button class="btn" id="menu-btn" onclick="toggleMenu()">Menu</button>
+            <div id="taskbar-apps">
+                <!-- Open windows will pin a status tracking button here dynamically -->
+            </div>
+        </div>
+        <div class="taskbar-right">
+            <div id="clock">00:00:00 AM</div>
+        </div>
+    </div>
+
+    <!-- ALL APPS MENU (Pop-up) -->
+    <div id="apps-menu">
+        <div style="font-size: 12px; color: #888; margin-bottom: 5px; padding-left: 10px;">ALL APPLICATIONS</div>
+        <div class="menu-item" onclick="openApp('firefox')">
+            <span class="icon-img firefox-icon" style="width:30px; height:30px; font-size:16px;">🦊</span>
+            <span>Fake Firefox</span>
+        </div>
+        <div class="menu-item" onclick="openApp('terminal')">
+            <span class="icon-img terminal-icon" style="width:30px; height:30px; font-size:16px;">💻</span>
+            <span>Terminal</span>
+        </div>
+    </div>
+
+    <!-- DESKTOP AREA -->
+    <div id="desktop">
+        <div class="desktop-icon" onclick="openApp('firefox')">
+            <div class="icon-img firefox-icon">🦊</div>
+            <div class="icon-label">Fake Firefox</div>
+        </div>
+        <div class="desktop-icon" onclick="openApp('terminal')">
+            <div class="icon-img terminal-icon">💻</div>
+            <div class="icon-label">Terminal</div>
+        </div>
+    </div>
+
+    <!-- MAC OS DOCK -->
+    <div id="dock-container">
+        <div id="dock">
+            <div class="dock-item firefox-icon" onclick="openApp('firefox')" title="Fake Firefox">🦊</div>
+            <div class="dock-item terminal-icon" onclick="openApp('terminal')" title="Terminal">💻</div>
+        </div>
+    </div>
+
+    <!-- APPLICATION WINDOW: FIREFOX -->
+    <div id="win-firefox" class="window">
+        <div class="window-header" onmousedown="dragStart(event, 'win-firefox')">
+            <span class="window-title">Fake Firefox Browser</span>
+            <div class="window-controls">
+                <div class="control-dot dot-min"></div>
+                <div class="control-dot dot-max"></div>
+                <div class="control-dot dot-close" onclick="closeApp('firefox')"></div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="browser-container">
+                <div class="browser-bar">
+                    <button class="btn" style="padding: 2px 8px; font-size: 11px; color:#000;">◀</button>
+                    <input type="text" class="browser-input" value="https://www.mozilla.org/fake-firefox">
+                    <button class="btn" style="padding: 2px 8px; font-size: 11px; color:#000; background:#357ec7; color:white;">Go</button>
+                </div>
+                <div class="browser-page">
+                    <h1 style="margin-bottom: 10px; color: #333;">Welcome to Fake Firefox</h1>
+                    <p style="color: #666;">This is a custom lightweight sandboxed web view layer inside your Assembly/HTML Hybrid framework.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION WINDOW: TERMINAL -->
+    <div id="win-terminal" class="window">
+        <div class="window-header" onmousedown="dragStart(event, 'win-terminal')">
+            <span class="window-title">bash - tty1</span>
+            <div class="window-controls">
+                <div class="control-dot dot-min"></div>
+                <div class="control-dot dot-max"></div>
+                <div class="control-dot dot-close" onclick="closeApp('terminal')"></div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="terminal-body">
+                <p>Linux kernel client simulated successfully...</p>
+                <p>Type 'help' or 'clear' to interact.</p>
+                <br>
+                <div id="terminal-output"></div>
+                <div style="display:flex; align-items:center;">
+                    <span>user@linux-hybrid:~$ &nbsp;</span>
+                    <input type="text" id="term-input" onkeydown="runCommand(event)" style="background:transparent; border:none; color:#4af626; font-family:monospace; font-size:14px; outline:none; flex:1;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // --- Clock Functionality ---
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // conversion of 0 to 12
+            document.getElementById('clock').innerText = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- Application Control Layout ---
+        function toggleMenu() {
+            const menu = document.getElementById('apps-menu');
+            menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        // Close Menu when clicking desktop
+        document.getElementById('desktop').addEventListener('click', () => {
+            document.getElementById('apps-menu').style.display = 'none';
+        });
+
+        function openApp(appId) {
+            document.getElementById('apps-menu').style.display = 'none';
+            const win = document.getElementById(`win-${appId}`);
+            win.style.display = 'flex';
+            win.style.zIndex = Math.floor(Date.now() / 1000); // Bring to front
+
+            // Add dynamic indicator to Top Taskbar if it doesn't exist
+            if (!document.getElementById(`taskbar-pin-${appId}`)) {
+                const taskbarApps = document.getElementById('taskbar-apps');
+                const pBtn = document.createElement('button');
+                pBtn.className = 'btn';
+                pBtn.id = `taskbar-pin-${appId}`;
+                pBtn.style.background = 'rgba(53, 126, 199, 0.4)';
+                pBtn.innerText = appId === 'firefox' ? '🦊 Firefox' : '💻 Terminal';
+                pBtn.onclick = () => {
+                    win.style.display = (win.style.display === 'none') ? 'flex' : 'none';
+                };
+                taskbarApps.appendChild(pBtn);
+            }
+        }
+
+        function closeApp(appId) {
+            document.getElementById(`win-${appId}`).style.display = 'none';
+            const pin = document.getElementById(`taskbar-pin-${appId}`);
+            if (pin) pin.remove();
+        }
+
+        // --- Draggable Windows Window Engine ---
+        let activeWin = null;
+        let offsetX = 0, offsetY = 0;
+
+        function dragStart(e, winId) {
+            activeWin = document.getElementById(winId);
+            activeWin.style.zIndex = Math.floor(Date.now() / 1000); // Bring to front focus
+            offsetX = e.clientX - activeWin.offsetLeft;
+            offsetY = e.clientY - activeWin.offsetTop;
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!activeWin) return;
+            activeWin.style.left = `${e.clientX - offsetX}px`;
+            activeWin.style.top = `${e.clientY - offsetY}px`;
+        }
+
+        function dragEnd() {
+            activeWin = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+        }
+
+        // --- Simulated Terminal Logic ---
+        function runCommand(e) {
+            if (e.key === 'Enter') {
+                const inputEl = document.getElementById('term-input');
+                const command = inputEl.value.trim().toLowerCase();
+                const outputEl = document.getElementById('terminal-output');
+                
+                let feedback = '';
+                if (command === 'help') {
+                    feedback = 'Available utilities: help, clear, neofetch, systemctl-status';
+                } else if (command === 'clear') {
+                    outputEl.innerHTML = '';
+                    inputEl.value = '';
+                    return;
+                } else if (command === 'neofetch') {
+                    feedback = `
+                     ./o.       user@linux-hybrid<br>
+                   ./sssso-     -----------------<br>
+                 `:osssssss+-   OS: Linux / Mac Hybrid 2026 Edition<br>
+               `:+ssssssssssso  Kernel: HTML5 Core Engine Engine<br>
+              `ossssssssssssss  Uptime: Active and running smoothly<br>
+              osssssssssssso/.  Shell: Javascript-Bash V1.0<br>
+              \`ssssssssssso\`    UI Framework: Vanilla CSS Rounded-Rectangle Stack
+                    `;
+                } else if (command === 'systemctl-status') {
+                    feedback = '● core-desktop.service - Loaded: active (running) safely in web-space.';
+                } else if (command !== '') {
+                    feedback = `bash: command not found: ${command}`;
+                }
+
+                if (command !== '') {
+                    outputEl.innerHTML += `<div>user@linux-hybrid:~$ ${inputEl.value}</div>`;
+                    outputEl.innerHTML += `<div style="margin-bottom:10px; white-space: pre-wrap;">${feedback}</div>`;
+                }
+                
+                inputEl.value = '';
+                const container = document.querySelector('.terminal-body');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
